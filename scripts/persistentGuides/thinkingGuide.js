@@ -26,7 +26,7 @@ const thinkingGuide = async (isAuto = false) => {
         genCommandSuffix,
         finalCommand,
         isAuto,
-        previousInjectionAction: 'flush',
+        previousInjectionAction: 'move',
         raw: extension_settings[extensionName]?.rawPromptThinking ?? false
     });
 };
