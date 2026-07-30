@@ -19,7 +19,7 @@ const situationalGuide = async (isAuto = false) => {
         genCommandSuffix,
         finalCommand,
         isAuto,
-        previousInjectionAction: 'flush',
+        previousInjectionAction: 'move',
         raw: extension_settings[extensionName]?.rawPromptSituational ?? false
     });
 };
