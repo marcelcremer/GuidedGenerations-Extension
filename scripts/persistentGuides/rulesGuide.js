@@ -23,7 +23,7 @@ const rulesGuide = async (isAuto = false) => {
         genCommandSuffix,
         finalCommand,
         isAuto,
-        previousInjectionAction: 'flush',
+        previousInjectionAction: 'move',
         raw: extension_settings[extensionName]?.rawPromptRules ?? false
     });
 };
