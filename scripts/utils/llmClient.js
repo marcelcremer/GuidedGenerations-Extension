@@ -562,15 +562,6 @@ async function buildPresetOverridePayload(presetManager, presetName, apiId, mode
     }
 }
 
-function emitGenerationEvent(context, eventType, payload = {}) {
-    if (!context?.eventSource || !context?.eventTypes?.[eventType]) return;
-    try {
-        context.eventSource.emit(context.eventTypes[eventType], payload);
-    } catch (error) {
-        debugWarn(`[${extensionName}] Failed to emit ${eventType}:`, error);
-    }
-}
-
 function getOpenAIPresetByName(helpers, presetName) {
     if (!helpers?.openai_settings || !helpers?.openai_setting_names || !presetName) return null;
     const presetIndex = helpers.openai_setting_names[presetName];
@@ -896,7 +887,6 @@ export async function requestCompletion({
             // gets an empty result.
             overridePayload.stream = false;
             debugLog(`[${extensionName}] requestCompletion: using ConnectionManagerRequestService for profile "${resolvedProfileName}" includePreset=false`);
-            emitGenerationEvent(context, 'GENERATION_STARTED', { source: extensionName });
             const promptPayload = mode === 'chat' ? requestData.messages : typeof prompt === 'string' ? prompt : '';
             const result = await connectionManagerService.sendRequest(
                 profile.id,
@@ -905,16 +895,12 @@ export async function requestCompletion({
                 custom,
                 overridePayload
             );
-            emitGenerationEvent(context, 'GENERATION_ENDED', { source: extensionName });
             return extractCompletionText(result);
         }
 
-        emitGenerationEvent(context, 'GENERATION_STARTED', { source: extensionName });
         const result = await service.processRequest(requestData, options, true, abortController.signal);
-        emitGenerationEvent(context, 'GENERATION_ENDED', { source: extensionName });
         return extractCompletionText(result);
     } catch (error) {
-        emitGenerationEvent(context, 'GENERATION_STOPPED', { source: extensionName });
         debugWarn(`[${extensionName}] requestCompletion failed ${debugLabel ? `(${debugLabel})` : ''}:`, error);
         return '';
     } finally {
