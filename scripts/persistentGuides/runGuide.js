@@ -1,4 +1,5 @@
 import { getContext, extension_settings, extensionName, debugLog, createTrackerNote, requestCompletion, shouldUseDirectCall, getPromptValue } from './guideExports.js'; // Import from central hub
+import { backupCurrentGuideInjection } from './guideVersionHistory.js';
 
 /**
  * Generic runner for Persistent Guides STScript commands.
@@ -78,24 +79,11 @@ export async function runGuideScript({ guideId, genAs = '', genCommandSuffix = '
                 });
                 const previousValue = typeof readResult?.pipe === 'string' ? readResult.pipe.trim() : '';
                 if (previousValue !== '') {
-                    // Back up the pre-move injection (content + metadata) so the user can
-                    // restore it with the "Revert" guide tool if the new version is bad.
+                    // Back up the pre-move injection so it can be restored from the Edit
+                    // Guides popup (per-guide "Revert" button) if the new version is bad.
                     // Only one level of undo is kept, matching the previous entry.
-                    const previousInjection = context.chatMetadata?.script_injects?.[guideId];
-                    if (context.chatMetadata) {
-                        if (!context.chatMetadata.ggPreviousGuideVersions) {
-                            context.chatMetadata.ggPreviousGuideVersions = {};
-                        }
-                        context.chatMetadata.ggPreviousGuideVersions[guideId] = {
-                            value: previousValue,
-                            depth: previousInjection?.depth,
-                            position: previousInjection?.position,
-                            scan: previousInjection?.scan,
-                            role: previousInjection?.role,
-                        };
-                        context.chatMetadata.ggLastChangedGuide = guideId;
-                        context.saveMetadataDebounced?.();
-                    }
+                    backupCurrentGuideInjection(context, guideId);
+                    context.saveMetadataDebounced?.();
 
                     const movedInjectionPrompt = await getPromptValue('persistentGuides.movedPreviousInjection', '');
                     const movedContent = movedInjectionPrompt.replace(/\{\{pipe\}\}/g, previousValue);

@@ -146,7 +146,6 @@ import customAutoGuide from './customAutoGuide.js';
 import editGuides from './editGuides.js';
 import showGuides from './showGuides.js';
 import flushGuides from './flushGuides.js';
-import revertGuide from './revertGuide.js';
 import funGuide from './funGuide.js';
 import trackerGuide from './trackerGuide.js';
 import { executeTracker, checkAndExecuteTracker, createTrackerNote } from './trackerLogic.js';
@@ -226,7 +225,6 @@ export {
     flushGuides,
     showGuides,
     editGuides,
-    revertGuide,
     updateCharacter,
     
     // Tools

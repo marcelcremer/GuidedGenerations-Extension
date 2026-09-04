@@ -1205,7 +1205,6 @@ function updateExtensionButtons() {
             { name: 'Show Guides', icon: 'fa-eye', path: './scripts/persistentGuides/showGuides.js', description: "Displays the content of currently active persistent guides." },
             { name: 'Edit Guides', icon: 'fa-edit', path: './scripts/persistentGuides/editGuides.js', description: "Opens a popup to create, edit, or delete custom persistent guides and their prompts." },
             { name: 'Flush Guides', icon: 'fa-trash', path: './scripts/persistentGuides/flushGuides.js', description: "Clears all injected content from persistent guides in the current chat." },
-            { name: 'Revert Guide', icon: 'fa-rotate-left', path: './scripts/persistentGuides/revertGuide.js', description: "Restores the most recently updated persistent guide to its previous version." },
             { name: 'Stat Tracker', icon: 'fa-chart-line', path: './scripts/persistentGuides/trackerGuide.js', description: "Create and configure stat trackers to monitor specific aspects of your story or characters." }
         ];
 
