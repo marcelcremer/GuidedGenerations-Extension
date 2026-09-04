@@ -14,6 +14,25 @@ import {
     getOpenAIPromptManagerHelpers,
 } from '../persistentGuides/guideExports.js';
 
+// context.extensionPrompts is a shared, global registry - any installed
+// extension using /inject or the native setExtensionPrompt API lands in it.
+// Direct-call requests (guides, spellchecker, corrections, etc.) are meant
+// to be focused, isolated utility calls, so only let GuidedGenerations' own
+// injections through - a third-party extension's summary/notes/etc. should
+// never silently compete for context budget or attention on these calls.
+const OWN_EXTENSION_PROMPT_KEYS = new Set(['clothes', 'state', 'thinking', 'situational', 'rules', 'customAuto']);
+
+function filterToOwnExtensionPrompts(extensionPrompts) {
+    if (!extensionPrompts || typeof extensionPrompts !== 'object') return {};
+    const filtered = {};
+    for (const key of Object.keys(extensionPrompts)) {
+        if (OWN_EXTENSION_PROMPT_KEYS.has(key)) {
+            filtered[key] = extensionPrompts[key];
+        }
+    }
+    return filtered;
+}
+
 const TEXT_API_IDS = new Set([
     'textgenerationwebui',
     'kobold',
@@ -688,7 +707,7 @@ async function buildChatMessagesWithPromptManager(context, baseMessages, presetN
             type: 'normal',
             quietPrompt: context?.quietPrompt || '',
             quietImage: context?.quietImage || '',
-            extensionPrompts: context?.extensionPrompts || [],
+            extensionPrompts: filterToOwnExtensionPrompts(context?.extensionPrompts),
             cyclePrompt: context?.cyclePrompt || '',
             systemPromptOverride: context?.systemPromptOverride || '',
             jailbreakPromptOverride: context?.jailbreakPromptOverride || '',
