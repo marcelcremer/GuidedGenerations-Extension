@@ -15,13 +15,13 @@
   "promptGuidedContinue": "[Continue the story based on the following input: {{input}}]",
   "customAutoGuidePrompt": "",
   "persistentGuides": {
-    "clothesInjection": "[Relevant Informations for portraying characters {{pipe}}]",
-    "stateInjection": "[Relevant Informations for portraying characters {{pipe}}]",
-    "thinkingInjection": "[Characters are currently thinking: {{pipe}}]",
-    "situationalInjection": "[Current Situation: {{pipe}}]",
-    "rulesInjection": "[Rules for current scene {{pipe}}]",
-    "customAutoInjection": "[{{pipe}}]",
-    "movedPreviousInjection": "[Relevant Informations for portraying characters {{pipe}}]"
+    "clothesInjection": "# Clothes\n{{pipe}}",
+    "stateInjection": "# Character State\n{{pipe}}",
+    "thinkingInjection": "# Thinking\n{{pipe}}",
+    "situationalInjection": "# Situation\n{{pipe}}",
+    "rulesInjection": "# Rules\n{{pipe}}",
+    "customAutoInjection": "# Custom\n{{pipe}}",
+    "movedPreviousInjection": "# Previously Established (do not discard)\n{{pipe}}"
   },
   "corrections": {
     "selectedTextTask": "{{historyBlock}}\n\nFull message:\n{{baseMessage}}\n\nSelected text to rewrite (exact):\n{{selectedText}}\n\n{{instruction}}\n\nTask: Rewrite ONLY the selected text to satisfy the instructions.\nReturn ONLY the rewritten selected text with no labels, no quotes, no code fences, and no extra commentary. The output must be ready to replace the selected text verbatim.",
