@@ -34,19 +34,12 @@ export async function runGuideScript({ guideId, genAs = '', genCommandSuffix = '
     const presetValue = rawPreset.trim().replace(/\|/g, ''); // Remove pipe characters to prevent STScript injection
     const profileValue = rawProfile.trim();
 
-    // Handle previous injection based on action
+    // Handle previous injection based on action.
+    // 'move' is resolved further down, once the SillyTavern context is
+    // available - it needs to read the currently active injection first and
+    // only re-inject it if there actually is a previous value (see below).
     let initCmd = '';
-    if (previousInjectionAction === 'move') {
-        const movedInjectionPrompt = await getPromptValue('persistentGuides.movedPreviousInjection', '');
-        initCmd = `// Read existing injection|
-/listinjects return=object |
-/let injections {{pipe}} |
-/let x {{var::injections}} |
-/var index=${guideId} x |
-/let y {{pipe}} |
-/var index=value y |
-/inject id=${guideId} position=chat scan=true depth=4 ${movedInjectionPrompt} |`;
-    } else if (previousInjectionAction === 'flush') {
+    if (previousInjectionAction === 'flush') {
         initCmd = `/flushinject ${guideId} |`;
     }
 
@@ -66,7 +59,35 @@ export async function runGuideScript({ guideId, genAs = '', genCommandSuffix = '
     if (context && typeof context.executeSlashCommandsWithOptions === 'function') {
         try {
             // Step 0: Run any injection cleanup/move commands before generation
-            if (initCmd) {
+            if (previousInjectionAction === 'move') {
+                // Read the currently active injection for this guide (if any)
+                // without unconditionally re-injecting it - on a guide's very
+                // first run there is nothing to move yet, and injecting the
+                // "Previously Established" wrapper with nothing underneath it
+                // just confuses the model instead of helping it.
+                debugLog(`[${extensionName}] Reading previous injection for move (guide=${guideId})...`);
+                const readPreviousCmd = `/listinjects return=object |
+/let injections {{pipe}} |
+/let x {{var::injections}} |
+/var index=${guideId} x |
+/let y {{pipe}} |
+/var index=value y |`;
+                const readResult = await context.executeSlashCommandsWithOptions(readPreviousCmd, {
+                    showOutput: false,
+                    handleExecutionErrors: true
+                });
+                const previousValue = typeof readResult?.pipe === 'string' ? readResult.pipe.trim() : '';
+                if (previousValue !== '') {
+                    const movedInjectionPrompt = await getPromptValue('persistentGuides.movedPreviousInjection', '');
+                    const movedContent = movedInjectionPrompt.replace(/\{\{pipe\}\}/g, previousValue);
+                    await context.executeSlashCommandsWithOptions(
+                        `/inject id=${guideId} position=chat scan=true depth=4 ${movedContent} |`,
+                        { showOutput: false, handleExecutionErrors: true }
+                    );
+                } else {
+                    debugLog(`[${extensionName}] No previous injection found for guide=${guideId}, skipping move.`);
+                }
+            } else if (initCmd) {
                 debugLog(`[${extensionName}] Executing pre-generation injection script...`);
                 await context.executeSlashCommandsWithOptions(initCmd, {
                     showOutput: false,
