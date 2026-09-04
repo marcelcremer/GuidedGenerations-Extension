@@ -4,6 +4,7 @@
  * Edit Guides Popup - Handles UI for editing guide injections.
  */
 import { extension_settings, extensionName, debugLog, requestCompletion, shouldUseDirectCall, getPromptValue, fillPromptTemplate } from './guideExports.js'; // Import from central hub
+import { backupCurrentGuideInjection, getGuideBackup } from './guideVersionHistory.js';
 
 export class EditGuidesPopup {
     constructor() {
@@ -55,6 +56,7 @@ export class EditGuidesPopup {
                     <div class="gg-popup-footer">
                         <button id="generateGuideButton" class="gg-button gg-button-secondary">Generate</button>
                         <button id="createGuideButton" class="gg-button gg-button-secondary">Create</button>
+                        <button id="editGuideRevertButton" class="gg-button gg-button-secondary" style="display:none;" title="Load the previous version of this guide into the editor.">Revert to Previous</button>
                         <button id="editGuideSaveButton" class="gg-button gg-button-primary">Save Changes</button>
                         <button id="editGuideCancelButton" class="gg-button gg-button-secondary">Cancel</button>
                     </div>
@@ -118,6 +120,7 @@ export class EditGuidesPopup {
         const closeButton = this.popupElement.querySelector('.gg-popup-close');
         const cancelButton = this.popupElement.querySelector('#editGuideCancelButton');
         const saveButton = this.popupElement.querySelector('#editGuideSaveButton');
+        const revertButton = this.popupElement.querySelector('#editGuideRevertButton');
         const selectElement = this.popupElement.querySelector('#editGuideSelect');
         const textareaElement = this.popupElement.querySelector('#editGuideTextarea');
 
@@ -174,6 +177,26 @@ export class EditGuidesPopup {
                     customSection.style.display = 'block';
                 }
             }
+
+            this.updateRevertButtonState();
+        });
+
+        // Revert the selected guide's editor fields to its previous version
+        revertButton?.addEventListener('click', () => {
+            if (!this.selectedGuideKey) return;
+            const guideName = this.selectedGuideKey.startsWith('script_inject_') ? this.selectedGuideKey.substring('script_inject_'.length) : this.selectedGuideKey;
+            const context = SillyTavern.getContext();
+            const backup = getGuideBackup(context, guideName);
+            if (!backup) return;
+
+            textareaElement.value = backup.value ?? '';
+            if (editDepthInput && backup.depth !== undefined && backup.depth !== null) {
+                editDepthInput.value = backup.depth;
+            }
+            if (editPositionInput && backup.position !== undefined && backup.position !== null) {
+                editPositionInput.value = backup.position;
+            }
+            debugLog(`[EditGuidesPopup] Loaded previous version of "${guideName}" into editor. Click Save Changes to apply.`);
         });
 
         // Create new custom guide
@@ -287,6 +310,28 @@ export class EditGuidesPopup {
     }
 
     /**
+     * Show/enable the "Revert to Previous" button only when editing an
+     * existing guide that actually has a backed-up previous version.
+     */
+    updateRevertButtonState() {
+        const revertButton = this.popupElement?.querySelector('#editGuideRevertButton');
+        if (!revertButton) return;
+
+        if (this.customMode || !this.selectedGuideKey) {
+            revertButton.style.display = 'none';
+            return;
+        }
+
+        const guideName = this.selectedGuideKey.startsWith('script_inject_') ? this.selectedGuideKey.substring('script_inject_'.length) : this.selectedGuideKey;
+        const context = SillyTavern.getContext();
+        const backup = getGuideBackup(context, guideName);
+
+        revertButton.style.display = 'inline-block';
+        revertButton.disabled = !backup;
+        revertButton.title = backup ? 'Load the previous version of this guide into the editor.' : 'No previous version available for this guide.';
+    }
+
+    /**
      * Open the popup and populate it with guide data.
      * @param {object} injectionData - The object containing guide keys and their data ({ value, depth, ... }).
      * @param {boolean} customMode - Flag for custom guide creation.
@@ -325,6 +370,7 @@ export class EditGuidesPopup {
         // Reset the dropdown to the default "Select" option and clear fields
         this.popupElement.querySelector('#editGuideSelect').value = '';
         this.popupElement.querySelector('#editGuideTextarea').value = 'Select a guide to see its content...';
+        this.updateRevertButtonState();
 
         this.popupElement.style.display = 'block';
         this.adjustPopupPosition();
@@ -448,6 +494,10 @@ export class EditGuidesPopup {
                     console.error(`[GuidedGenerations] Cannot update persistent injection: context.chatMetadata.script_injects['${guideName}'] not found.`);
                     return false;
                 }
+
+                // Back up whatever was live before this edit overwrites it, so it can
+                // be restored later via the "Revert to Previous" button.
+                backupCurrentGuideInjection(context, guideName);
 
                 // Update the persisted value
                 injection.value = content;

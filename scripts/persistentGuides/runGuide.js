@@ -1,4 +1,5 @@
 import { getContext, extension_settings, extensionName, debugLog, createTrackerNote, requestCompletion, shouldUseDirectCall, getPromptValue } from './guideExports.js'; // Import from central hub
+import { backupCurrentGuideInjection } from './guideVersionHistory.js';
 
 /**
  * Generic runner for Persistent Guides STScript commands.
@@ -78,6 +79,12 @@ export async function runGuideScript({ guideId, genAs = '', genCommandSuffix = '
                 });
                 const previousValue = typeof readResult?.pipe === 'string' ? readResult.pipe.trim() : '';
                 if (previousValue !== '') {
+                    // Back up the pre-move injection so it can be restored from the Edit
+                    // Guides popup (per-guide "Revert" button) if the new version is bad.
+                    // Only one level of undo is kept, matching the previous entry.
+                    backupCurrentGuideInjection(context, guideId);
+                    context.saveMetadataDebounced?.();
+
                     const movedInjectionPrompt = await getPromptValue('persistentGuides.movedPreviousInjection', '');
                     const movedContent = movedInjectionPrompt.replace(/\{\{pipe\}\}/g, previousValue);
                     await context.executeSlashCommandsWithOptions(
