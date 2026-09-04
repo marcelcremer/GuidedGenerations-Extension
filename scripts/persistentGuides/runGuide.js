@@ -78,6 +78,25 @@ export async function runGuideScript({ guideId, genAs = '', genCommandSuffix = '
                 });
                 const previousValue = typeof readResult?.pipe === 'string' ? readResult.pipe.trim() : '';
                 if (previousValue !== '') {
+                    // Back up the pre-move injection (content + metadata) so the user can
+                    // restore it with the "Revert" guide tool if the new version is bad.
+                    // Only one level of undo is kept, matching the previous entry.
+                    const previousInjection = context.chatMetadata?.script_injects?.[guideId];
+                    if (context.chatMetadata) {
+                        if (!context.chatMetadata.ggPreviousGuideVersions) {
+                            context.chatMetadata.ggPreviousGuideVersions = {};
+                        }
+                        context.chatMetadata.ggPreviousGuideVersions[guideId] = {
+                            value: previousValue,
+                            depth: previousInjection?.depth,
+                            position: previousInjection?.position,
+                            scan: previousInjection?.scan,
+                            role: previousInjection?.role,
+                        };
+                        context.chatMetadata.ggLastChangedGuide = guideId;
+                        context.saveMetadataDebounced?.();
+                    }
+
                     const movedInjectionPrompt = await getPromptValue('persistentGuides.movedPreviousInjection', '');
                     const movedContent = movedInjectionPrompt.replace(/\{\{pipe\}\}/g, previousValue);
                     await context.executeSlashCommandsWithOptions(
