@@ -286,9 +286,9 @@ export const defaultSettings = {
     // Depth settings for prompt overrides
     depthPromptClothes: 1,
     depthPromptState: 1,
-    depthPromptThinking: 0,
+    depthPromptThinking: 1,
     depthPromptSituational: 1,
-    depthPromptRules: 0,
+    depthPromptRules: 1,
     depthPromptCorrections: 0,
     depthPromptSeparatedThinking: 0,
     depthPromptGuidedResponse: 0,
@@ -415,6 +415,17 @@ function migratePromptSettings() {
         if (settings[overrideSettingKey] === undefined) {
             settings[overrideSettingKey] = true;
         }
+    }
+
+    // depth=0 on a persistent guide's /inject causes SillyTavern to drop the
+    // injection entirely instead of placing it right before the latest
+    // message. Thinking and Rules used to default to 0; bump any install
+    // still sitting on that broken value up to 1, matching the other guides.
+    if (settings.depthPromptThinking === 0) {
+        settings.depthPromptThinking = 1;
+    }
+    if (settings.depthPromptRules === 0) {
+        settings.depthPromptRules = 1;
     }
 }
 
